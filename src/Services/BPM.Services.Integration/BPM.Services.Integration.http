@@ -1,0 +1,6 @@
+@BPM.Services.Integration_HostAddress = http://localhost:5082
+
+GET {{BPM.Services.Integration_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

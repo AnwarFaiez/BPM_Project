@@ -1,0 +1,6 @@
+@BPM.Services.Forms_HostAddress = http://localhost:5052
+
+GET {{BPM.Services.Forms_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
