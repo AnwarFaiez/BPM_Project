@@ -1,0 +1,203 @@
+version: '3.8'
+
+services:
+  # SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: bpm-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "BPM@Strong#Password123"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - bpm-network
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "BPM@Strong#Password123" -Q "SELECT 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: bpm-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - bpm-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: bpm-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: bpmuser
+      RABBITMQ_DEFAULT_PASS: bpmpassword
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - bpm-network
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Elasticsearch for search and analytics
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: bpm-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - bpm-network
+    healthcheck:
+      test: curl -f http://localhost:9200 || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Process Service API
+  process-service:
+    build:
+      context: .
+      dockerfile: src/Services/BPM.Services.Process/Dockerfile
+    container_name: bpm-process-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=EnterpriseBPM;User Id=sa;Password=BPM@Strong#Password123;TrustServerCertificate=True
+      - Redis__ConnectionString=redis:6379
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Username=bpmuser
+      - RabbitMQ__Password=bpmpassword
+    ports:
+      - "5001:80"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - bpm-network
+
+  # Identity Service API
+  identity-service:
+    build:
+      context: .
+      dockerfile: src/Services/BPM.Services.Identity/Dockerfile
+    container_name: bpm-identity-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=EnterpriseBPM;User Id=sa;Password=BPM@Strong#Password123;TrustServerCertificate=True
+      - Redis__ConnectionString=redis:6379
+      - JWT__Secret=ThisIsAVeryLongSecretKeyForJWTTokenGeneration123456789
+      - JWT__Issuer=EnterpriseBPM
+      - JWT__Audience=EnterpriseBPM
+    ports:
+      - "5002:80"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - bpm-network
+
+  # Forms Service API
+  forms-service:
+    build:
+      context: .
+      dockerfile: src/Services/BPM.Services.Forms/Dockerfile
+    container_name: bpm-forms-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=EnterpriseBPM;User Id=sa;Password=BPM@Strong#Password123;TrustServerCertificate=True
+      - Redis__ConnectionString=redis:6379
+    ports:
+      - "5003:80"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - bpm-network
+
+  # Integration Service API
+  integration-service:
+    build:
+      context: .
+      dockerfile: src/Services/BPM.Services.Integration/Dockerfile
+    container_name: bpm-integration-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=EnterpriseBPM;User Id=sa;Password=BPM@Strong#Password123;TrustServerCertificate=True
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Username=bpmuser
+      - RabbitMQ__Password=bpmpassword
+    ports:
+      - "5004:80"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - bpm-network
+
+  # Analytics Service API
+  analytics-service:
+    build:
+      context: .
+      dockerfile: src/Services/BPM.Services.Analytics/Dockerfile
+    container_name: bpm-analytics-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=EnterpriseBPM;User Id=sa;Password=BPM@Strong#Password123;TrustServerCertificate=True
+      - Elasticsearch__Uri=http://elasticsearch:9200
+    ports:
+      - "5005:80"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - bpm-network
+
+networks:
+  bpm-network:
+    driver: bridge
+
+volumes:
+  sqlserver-data:
+  redis-data:
+  rabbitmq-data:
+  elasticsearch-data:
