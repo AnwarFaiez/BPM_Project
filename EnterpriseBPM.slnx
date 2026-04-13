@@ -1,0 +1,27 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Core/">
+    <Project Path="src/Core/BPM.Core.Domain/BPM.Core.Domain.csproj" />
+    <Project Path="src/Core/BPM.Core.FormsEngine/BPM.Core.FormsEngine.csproj" />
+    <Project Path="src/Core/BPM.Core.RulesEngine/BPM.Core.RulesEngine.csproj" />
+    <Project Path="src/Core/BPM.Core.WorkflowEngine/BPM.Core.WorkflowEngine.csproj" />
+  </Folder>
+  <Folder Name="/src/Infrastructure/">
+    <Project Path="src/Infrastructure/BPM.Infrastructure.Cache/BPM.Infrastructure.Cache.csproj" />
+    <Project Path="src/Infrastructure/BPM.Infrastructure.Data/BPM.Infrastructure.Data.csproj" />
+    <Project Path="src/Infrastructure/BPM.Infrastructure.Logging/BPM.Infrastructure.Logging.csproj" />
+    <Project Path="src/Infrastructure/BPM.Infrastructure.Messaging/BPM.Infrastructure.Messaging.csproj" />
+    <Project Path="src/Infrastructure/BPM.Infrastructure.Storage/BPM.Infrastructure.Storage.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/">
+    <Project Path="src/Services/BPM.Services.Analytics/BPM.Services.Analytics.csproj" />
+    <Project Path="src/Services/BPM.Services.Forms/BPM.Services.Forms.csproj" />
+    <Project Path="src/Services/BPM.Services.Identity/BPM.Services.Identity.csproj" />
+    <Project Path="src/Services/BPM.Services.Integration/BPM.Services.Integration.csproj" />
+    <Project Path="src/Services/BPM.Services.Process/BPM.Services.Process.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BPM.Tests.Integration/BPM.Tests.Integration.csproj" />
+    <Project Path="tests/BPM.Tests.Unit/BPM.Tests.Unit.csproj" />
+  </Folder>
+</Solution>

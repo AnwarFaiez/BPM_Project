@@ -1,0 +1,37 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, copilot/implement-bpm-system ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  SOLUTION_PATH: './EnterpriseBPM.slnx'
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.SOLUTION_PATH }}
+      
+    - name: Build solution
+      run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore
+      
+    - name: Run unit tests
+      run: dotnet test tests/BPM.Tests.Unit/BPM.Tests.Unit.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+      
+    - name: Run integration tests
+      run: dotnet test tests/BPM.Tests.Integration/BPM.Tests.Integration.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=integration-test-results.trx"
